@@ -1,19 +1,13 @@
 {
-    "displayName": "Plotter LRC Channel",
-    "codeName": "Plotter",
+    "displayName": "Plotter LRC",
+    "codeName": "PlotterLinearRegressionCurve",
     "devTeam": "AAMasters",
     "modules": [
         {
-            "codeName": "LRCChannel",
-            "moduleName": "LRCChannel",
-            "description": "Plots the linnear regression curve channel.",
-            "panels": [
-                {
-                    "codeName": "Panel",
-                    "moduleName": "Panel",
-                    "event": "Current LRC Changed"
-                }
-            ]
+            "codeName": "LRC",
+            "moduleName": "LRC",
+            "description": "Plots the linear regression curve.",
+            "panels": []
         }
     ]
 }

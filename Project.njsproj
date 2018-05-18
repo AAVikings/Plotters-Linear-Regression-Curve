@@ -6,7 +6,7 @@
     <ProjectGuid>{096b35ad-f86f-47b9-a99f-04ca93397da8}</ProjectGuid>
     <ProjectHome />
     <ProjectView>ShowAllFiles</ProjectView>
-    <StartupFile>LRCChannel.js</StartupFile>
+    <StartupFile>LRC.js</StartupFile>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <ProjectTypeGuids>{3AF33F2E-1136-4D97-BBB7-1795711AC8B8};{349c5851-65df-11da-9384-00065b846f21};{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}</ProjectTypeGuids>
@@ -18,7 +18,7 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
     <Compile Include="Panel.js" />
-    <Compile Include="LRCChannel.js" />
+    <Compile Include="LRC.js" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="this.plotter.config.json" />

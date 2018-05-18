@@ -1,4 +1,4 @@
-﻿function newAAMastersPlotterLRCChannel() {
+﻿function newAAMastersPlotterLinearRegressionCurveLRC() {
      
     let thisObject = {
 
@@ -312,7 +312,7 @@
 
     function recalculateScale() {
 
-        if (marketFile === undefined) { return; } // We need the market file to be loaded to make the calculation.
+        //if (marketFile === undefined) { return; } // We need the market file to be loaded to make the calculation.
 
         if (timeLineCoordinateSystem.maxValue > 0) { return; } // Already calculated.
 
@@ -323,7 +323,7 @@
 
         let maxValue = {
             x: MAX_PLOTABLE_DATE.valueOf(),
-            y: nextPorwerOf10(getMaxRate()) / 4 // TODO: This 4 is temporary
+            y: 25000 //nextPorwerOf10(getMaxRate()) / 4 // TODO: This 4 is temporary
         };
 
 
@@ -356,7 +356,7 @@
     function plotChart() {
         
         if (lrcPoints.length > 0) {
-            for (var i = 0; i < lrcPoints.length; i++) {
+            for (var i = 0; i < lrcPoints.length - 1; i++) {
 
                 //if (nextMidPoint === undefined) continue; // TODO Make sure this works well when there is data being received from the server
                 
