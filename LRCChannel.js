@@ -39,7 +39,7 @@
 
     /* these are module specific variables: */
 
-    let LRCChannels = [];                   // Here we keep the LRCChannels to be ploted every time the Draw() function is called by the AAWebPlatform.
+    let lrcPoints = [];                   // Here we keep the LRCPoints to be ploted every time the Draw() function is called by the AAWebPlatform.
 
     return thisObject;
 
@@ -143,8 +143,8 @@
         datetime = pDatetime;
 
     }
-
-
+    
+    
     function onDailyFileLoaded(event) {
 
         if (event.currentValue === event.totalValue) {
@@ -176,7 +176,7 @@
 
         }
 
-        thisObject.container.eventHandler.raiseEvent("LRCChannels Changed", LRCChannels);
+        thisObject.container.eventHandler.raiseEvent("lrcPoints Changed", lrcPoints);
     }
 
     function recalculateUsingDailyFiles() {
@@ -197,7 +197,7 @@
 
         let currentDate = new Date(farLeftDate.valueOf());
 
-        LRCChannels = [];
+        lrcPoints = [];
 
         while (currentDate.valueOf() <= farRightDate.valueOf() + ONE_DAY_IN_MILISECONDS) {
 
@@ -208,20 +208,21 @@
             if (dailyFile !== undefined) {
 
                 for (let i = 0; i < dailyFile.length; i++) {
-
-                    let lrcChannel = dailyFile[i];
-
-                    let lrcChannelBegin = dailyFile[i][6];
-                    let lrcChannelEnd = dailyFile[i][7];
+                    let lrcPoint = {
+                        begin: dailyFile[i][0],
+                        end: dailyFile[i][1],
+                        min: dailyFile[i][4],
+                        mid: dailyFile[i][5],
+                        max: dailyFile[i][6]
+                    }
                     
+                    if (lrcPoint.begin >= farLeftDate.valueOf() && lrcPoint.end <= farRightDate.valueOf()) {
 
-                    if (lrcChannelBegin >= farLeftDate.valueOf() && lrcChannelEnd <= farRightDate.valueOf()) {
-
-                        LRCChannels.push(lrcChannel);
+                        lrcPoints.push(lrcPoint);
 
                         if (datetime.valueOf() >= lrcChannelBegin && datetime.valueOf() <= lrcChannelEnd) {
 
-                            thisObject.currentLRC = lrcChannel;
+                            thisObject.currentLRC = lrcPoint;
                             thisObject.container.eventHandler.raiseEvent("Current LRC Changed", thisObject.currentLRC);
 
                         }
@@ -232,23 +233,23 @@
             currentDate = new Date(currentDate.valueOf() + ONE_DAY_IN_MILISECONDS);
         }
 
-        /* Lests check if all the visible screen is going to be covered by LRCChannels. */
+        /* Lests check if all the visible screen is going to be covered by lrcPoints. */
 
         let lowerEnd = leftDate.valueOf();
         let upperEnd = rightDate.valueOf();
 
-        if (LRCChannels.length > 0) {
+        if (lrcPoints.length > 0) {
 
-            if (LRCChannels[0].begin > lowerEnd || LRCChannels[LRCChannels.length - 1].end < upperEnd) {
+            if (lrcPoints[0].begin > lowerEnd || lrcPoints[lrcPoints.length - 1].end < upperEnd) {
 
                 setTimeout(recalculate, 2000);
 
-                //console.log("File missing while calculating LRCChannels, scheduling a recalculation in 2 seconds.");
+                //console.log("File missing while calculating lrcPoints, scheduling a recalculation in 2 seconds.");
 
             }
         }
 
-        //console.log("Olivia > recalculateUsingDailyFiles > total LRCChannels generated : " + LRCChannels.length);
+        //console.log("Olivia > recalculateUsingDailyFiles > total lrcPoints generated : " + lrcPoints.length);
 
     }
 
@@ -266,7 +267,7 @@
     //    leftDate = new Date(leftDate.valueOf() - dateDiff * 1.5);
     //    rightDate = new Date(rightDate.valueOf() + dateDiff * 1.5);
 
-    //    LRCChannels = [];
+    //    lrcPoints = [];
 
     //    for (let i = 0; i < marketFile.length; i++) {
 
@@ -295,7 +296,7 @@
 
     //        if (candle.begin >= leftDate.valueOf() && candle.end <= rightDate.valueOf()) {
 
-    //            LRCChannels.push(candle);
+    //            lrcPoints.push(candle);
 
     //            if (datetime.valueOf() >= candle.begin && datetime.valueOf() <= candle.end) {
 
@@ -306,7 +307,7 @@
     //        } 
     //    }
 
-    //    //console.log("Olivia > recalculateUsingMarketFiles > total LRCChannels generated : " + LRCChannels.length);
+    //    //console.log("Olivia > recalculateUsingMarketFiles > total lrcPoints generated : " + lrcPoints.length);
     //}
 
     function recalculateScale() {
@@ -354,48 +355,81 @@
 
     function plotChart() {
         
-        if (LRCChannels.length > 0) {
-            for (var i = 0; i < LRCChannels.length; i++) {
+        if (lrcPoints.length > 0) {
+            for (var i = 0; i < lrcPoints.length; i++) {
 
                 //if (nextMidPoint === undefined) continue; // TODO Make sure this works well when there is data being received from the server
+                
+                let currentTime = (lrcPoints[i].begin + lrcPoints[i].end) / 2;
+                let nextTime = (lrcPoints[i + 1].begin + lrcPoints[i + 1].end) / 2;
 
-                let currentTime = LRCChannels[i][0];
-                let nextTime = LRCChannels[i + 1][0];
+                let currentPoint = {
+                    x: currentTime,
+                    y: 0
+                }
 
-                let minPoint = LRCChannels[i][1];
-                let nextMinPoint = LRCChannels[i + 1][1];
-                let minColor = 'rgba(182, 190, 255, 0.95)';
-                plotLRC(currentTime, minPoint, nextTime, nextMinPoint, minColor);
+                let nextPoint = {
+                    x: nextTime,
+                    y: 0
+                }
 
-                let midPoint = LRCChannels[i][2];
-                let nextMidPoint = LRCChannels[i + 1][2];
-                let midColor = 'rgba(109, 125, 255, 0.95)';
-                plotLRC(currentTime, midPoint, nextMidPoint, nextMinPoint, midColor);
+                let color = ''; 
 
-                let maxPoint = LRCChannels[i][3];
-                let nextMaxPoint = LRCChannels[i + 1][3];
-                let maxColor = 'rgba(57, 79, 255, 0.95)';
-                plotLRC(currentTime, maxPoint, nextMaxPoint, nextMinPoint, maxColor);
+                currentPoint.y = lrcPoints[i].min;
+                nextMinPoint.y = lrcPoints[i+1].min;
+                color = 'rgba(182, 190, 255, 0.95)';
+                plotLRC(currentPoint, nextMinPoint, color);
+
+                currentPoint.y = lrcPoints[i].mid;
+                nextMinPoint.y = lrcPoints[i + 1].min;
+                color = 'rgba(109, 125, 255, 0.95)';
+                plotLRC(currentPoint, nextMinPoint, color);
+
+                currentPoint.y = lrcPoints[i].max;
+                nextMinPoint.y = lrcPoints[i + 1].max;
+                color = 'rgba(57, 79, 255, 0.95)';
+                plotLRC(currentPoint, nextMinPoint, color);
                 
             }
         }
     }
 
-    function plotLRC(currentTime, currentLRCPoint, nextTime, nextLRCPoint, color) {
-        
-        //currentLRCPoint = plotArea.inverseTransform(currentLRCPoint, linearRegressionCurveChartLayer.container.frame.height);
-        //nextLRCPoint = plotArea.inverseTransform(nextLRCPoint, linearRegressionCurveChartLayer.container.frame.height);
+    function plotLRC(currentLRCPoint, nextLRCPoint, color) {
+
+        currentLRCPoint = timeLineCoordinateSystem.transformThisPoint(currentLRCPoint);
+        nextLRCPoint = timeLineCoordinateSystem.transformThisPoint(nextLRCPoint);
 
         currentLRCPoint = transformThisPoint(currentLRCPoint, linearRegressionCurveChartLayer.container);
         nextLRCPoint = transformThisPoint(nextLRCPoint, linearRegressionCurveChartLayer.container);
+
+        if (nextLRCPoint.x < viewPort.visibleArea.bottomLeft.x || currentLRCPoint.x > viewPort.visibleArea.bottomRight.x) {
+            return;
+        }
 
         currentLRCPoint = viewPort.fitIntoVisibleArea(currentLRCPoint);
         nextLRCPoint = viewPort.fitIntoVisibleArea(nextLRCPoint);
 
         browserCanvasContext.beginPath();
-        browserCanvasContext.moveTo(currentTime, currentLRCPoint);
-        browserCanvasContext.lineTo(nextTime, nextLRCPoint);
+        browserCanvasContext.moveTo(currentLRCPoint.x, currentLRCPoint.y);
+        browserCanvasContext.lineTo(nextLRCPoint.x, nextLRCPoint.y);
         browserCanvasContext.closePath();
+
+        //TODO Validate
+        if (datetime !== undefined) {
+
+            let dateValue = datetime.valueOf();
+
+            if (dateValue >= currentLRCPoint.begin && dateValue <= currentLRCPoint.end) {
+
+                browserCanvasContext.strokeStyle = 'rgba(255, 233, 31, 1)'; // Current candle accroding to time
+
+            } else {
+                browserCanvasContext.strokeStyle = 'rgba(212, 206, 201, 1)';
+            }
+
+        } else {
+            browserCanvasContext.strokeStyle = 'rgba(212, 206, 201, 1)';
+        }
 
         browserCanvasContext.strokeStyle = color;
         browserCanvasContext.fill();
