@@ -17,8 +17,7 @@
 
         // Secondary functions and properties.
 
-        currentLRC: undefined,
-        positionAtDatetime: positionAtDatetime
+        currentLRC: undefined
     };
 
     /* this is part of the module template */
@@ -145,67 +144,6 @@
 
     }
 
-    function positionAtDatetime(newDatetime) {
-
-        value = newDatetime.valueOf();
-
-        /* Now we calculate which candle has this new time, because it will give us the y coordinate. */
-
-        for (let i = 0; i < LRCChannels.length; i++) {
-
-            if (value >= LRCChannels[i].begin && value <= LRCChannels[i].end) {
-
-                let targetPoint = {
-                    x: value,
-                    y: LRCChannels[i].open
-                };
-
-                targetPoint = timeLineCoordinateSystem.transformThisPoint(targetPoint);
-                targetPoint = transformThisPoint(targetPoint, thisObject.container);
-
-                let targetMax = {
-                    x: value,
-                    y: LRCChannels[i].max
-                };
-
-                targetMax = timeLineCoordinateSystem.transformThisPoint(targetMax);
-                targetMax = transformThisPoint(targetMax, thisObject.container);
-
-                let targetMin = {
-                    x: value,
-                    y: LRCChannels[i].min
-                };
-
-                targetMin = timeLineCoordinateSystem.transformThisPoint(targetMin);
-                targetMin = transformThisPoint(targetMin, thisObject.container);
-
-                let center = {
-                    x: (viewPort.visibleArea.bottomRight.x - viewPort.visibleArea.bottomLeft.x) / 2,
-                    y: (viewPort.visibleArea.bottomRight.y - viewPort.visibleArea.topRight.y) / 2
-                };
-
-                if (targetMax.y < viewPort.visibleArea.topLeft.y || targetMin.y > viewPort.visibleArea.bottomRight.y) {
-
-                    let displaceVector = {
-                        x: 0,
-                        y: center.y - targetPoint.y
-                    };
-
-                    viewPort.displaceTarget(displaceVector);
-
-                }
-
-                let displaceVector = {
-                    x: center.x - targetPoint.x,
-                    y: 0
-                };
-
-                viewPort.displace(displaceVector);
-
-                return;
-            }
-        }
-    }
 
     function onDailyFileLoaded(event) {
 
