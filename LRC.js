@@ -1,4 +1,4 @@
-﻿function newAAMastersPlotterLinearRegressionCurveLRC() {
+﻿function newAAVikingsPlotterLinearRegressionCurveLRC() {
      
     let thisObject = {
 
@@ -181,7 +181,7 @@
 
     function recalculateUsingDailyFiles() {
 
-        if (fileCursor === undefined) { return; } // We need to wait
+        if (fileCursor === undefined || fileCursor.files === undefined) { return; } // We need to wait
 
         if (fileCursor.files.size === 0) { return;} // We need to wait until there are files in the cursor
 
@@ -211,16 +211,16 @@
                     let lrcPoint = {
                         begin: dailyFile[i][0],
                         end: dailyFile[i][1],
-                        min: dailyFile[i][4],
-                        mid: dailyFile[i][5],
-                        max: dailyFile[i][6]
+                        min: dailyFile[i][2],
+                        mid: dailyFile[i][3],
+                        max: dailyFile[i][4]
                     }
                     
                     if (lrcPoint.begin >= farLeftDate.valueOf() && lrcPoint.end <= farRightDate.valueOf()) {
 
                         lrcPoints.push(lrcPoint);
 
-                        if (datetime.valueOf() >= lrcChannelBegin && datetime.valueOf() <= lrcChannelEnd) {
+                        if (datetime.valueOf() >= lrcPoint.begin && datetime.valueOf() <= lrcPoint.end) {
 
                             thisObject.currentLRC = lrcPoint;
                             thisObject.container.eventHandler.raiseEvent("Current LRC Changed", thisObject.currentLRC);
@@ -350,45 +350,51 @@
             return maxValue;
 
         }
-
     }
 
     function plotChart() {
         
         if (lrcPoints.length > 0) {
             for (var i = 0; i < lrcPoints.length - 1; i++) {
-
-                //if (nextMidPoint === undefined) continue; // TODO Make sure this works well when there is data being received from the server
-                
+                                
                 let currentTime = (lrcPoints[i].begin + lrcPoints[i].end) / 2;
                 let nextTime = (lrcPoints[i + 1].begin + lrcPoints[i + 1].end) / 2;
 
                 let currentPoint = {
-                    x: currentTime,
+                    x: lrcPoints[i].begin,
                     y: 0
                 }
 
                 let nextPoint = {
-                    x: nextTime,
+                    x: lrcPoints[i + 1].begin,
                     y: 0
                 }
 
-                let color = ''; 
+                let color = 'rgba(255, 233, 31, 0.40)';
+                let currentLRCPoint = false;
 
+                if (datetime !== undefined) {
+                    let dateValue = datetime.valueOf();
+                    if (dateValue >= lrcPoints[i].begin && dateValue <= lrcPoints[i].end) {
+                        currentLRCPoint = true;
+                        thisObject.container.eventHandler.raiseEvent("Current LRC Changed", lrcPoints[i]);
+                    }
+                }
+
+                if (!currentLRCPoint) color = 'rgba(182, 190, 255, 0.95)';
                 currentPoint.y = lrcPoints[i].min;
-                nextMinPoint.y = lrcPoints[i+1].min;
-                color = 'rgba(182, 190, 255, 0.95)';
-                plotLRC(currentPoint, nextMinPoint, color);
+                nextPoint.y = lrcPoints[i+1].min; 
+                plotLRC(currentPoint, nextPoint, color);
 
+                if (!currentLRCPoint) color = 'rgba(109, 125, 255, 0.95)';
                 currentPoint.y = lrcPoints[i].mid;
-                nextMinPoint.y = lrcPoints[i + 1].min;
-                color = 'rgba(109, 125, 255, 0.95)';
-                plotLRC(currentPoint, nextMinPoint, color);
+                nextPoint.y = lrcPoints[i + 1].mid;
+                plotLRC(currentPoint, nextPoint, color);
 
+                if (!currentLRCPoint) color = 'rgba(57, 79, 255, 0.95)';
                 currentPoint.y = lrcPoints[i].max;
-                nextMinPoint.y = lrcPoints[i + 1].max;
-                color = 'rgba(57, 79, 255, 0.95)';
-                plotLRC(currentPoint, nextMinPoint, color);
+                nextPoint.y = lrcPoints[i + 1].max;
+                plotLRC(currentPoint, nextPoint, color);
                 
             }
         }
@@ -399,8 +405,8 @@
         currentLRCPoint = timeLineCoordinateSystem.transformThisPoint(currentLRCPoint);
         nextLRCPoint = timeLineCoordinateSystem.transformThisPoint(nextLRCPoint);
 
-        currentLRCPoint = transformThisPoint(currentLRCPoint, linearRegressionCurveChartLayer.container);
-        nextLRCPoint = transformThisPoint(nextLRCPoint, linearRegressionCurveChartLayer.container);
+        currentLRCPoint = transformThisPoint(currentLRCPoint, thisObject.container);
+        nextLRCPoint = transformThisPoint(nextLRCPoint, thisObject.container);
 
         if (nextLRCPoint.x < viewPort.visibleArea.bottomLeft.x || currentLRCPoint.x > viewPort.visibleArea.bottomRight.x) {
             return;
@@ -413,24 +419,7 @@
         browserCanvasContext.moveTo(currentLRCPoint.x, currentLRCPoint.y);
         browserCanvasContext.lineTo(nextLRCPoint.x, nextLRCPoint.y);
         browserCanvasContext.closePath();
-
-        //TODO Validate
-        if (datetime !== undefined) {
-
-            let dateValue = datetime.valueOf();
-
-            if (dateValue >= currentLRCPoint.begin && dateValue <= currentLRCPoint.end) {
-
-                browserCanvasContext.strokeStyle = 'rgba(255, 233, 31, 1)'; // Current candle accroding to time
-
-            } else {
-                browserCanvasContext.strokeStyle = 'rgba(212, 206, 201, 1)';
-            }
-
-        } else {
-            browserCanvasContext.strokeStyle = 'rgba(212, 206, 201, 1)';
-        }
-
+        
         browserCanvasContext.strokeStyle = color;
         browserCanvasContext.fill();
         browserCanvasContext.lineWidth = 1;
