@@ -55,20 +55,20 @@
 
         /* We need a Market File in order to calculate the Y scale, since this scale depends on actual data. */
 
-        //marketFile = marketFiles.getFile(ONE_DAY_IN_MILISECONDS);  // This file is the one processed faster. 
+        marketFile = marketFiles.getFile(ONE_DAY_IN_MILISECONDS);  // This file is the one processed faster. 
 
         recalculateScale();
 
         /* Now we set the right files according to current Period. */
 
-        //marketFile = marketFiles.getFile(pTimePeriod);
+        marketFile = marketFiles.getFile(pTimePeriod);
         fileCursor = dailyFiles.getFileCursor(pTimePeriod);
 
         /* Listen to the necesary events. */
 
         viewPort.eventHandler.listenToEvent("Zoom Changed", onZoomChanged);
         canvas.eventHandler.listenToEvent("Drag Finished", onDragFinished);
-        //marketFiles.eventHandler.listenToEvent("Files Updated", onFilesUpdated);
+        marketFiles.eventHandler.listenToEvent("Files Updated", onFilesUpdated);
 
         /* Get ready for plotting. */
 
@@ -168,7 +168,7 @@
 
         if (timePeriod >= _1_HOUR_IN_MILISECONDS) {
 
-            //recalculateUsingMarketFiles();
+            recalculateUsingMarketFiles();
 
         } else {
 
@@ -208,25 +208,9 @@
             if (dailyFile !== undefined) {
 
                 for (let i = 0; i < dailyFile.length; i++) {
-                    let lrcPoint = {
-                        begin: dailyFile[i][0],
-                        end: dailyFile[i][1],
-                        min: dailyFile[i][2],
-                        mid: dailyFile[i][3],
-                        max: dailyFile[i][4]
-                    }
+
+                    addLRCPointToPlotter(dailyFile[i], farLeftDate, farRightDate);
                     
-                    if (lrcPoint.begin >= farLeftDate.valueOf() && lrcPoint.end <= farRightDate.valueOf()) {
-
-                        lrcPoints.push(lrcPoint);
-
-                        if (datetime.valueOf() >= lrcPoint.begin && datetime.valueOf() <= lrcPoint.end) {
-
-                            thisObject.currentLRC = lrcPoint;
-                            thisObject.container.eventHandler.raiseEvent("Current LRC Changed", thisObject.currentLRC);
-
-                        }
-                    }
                 }
             } 
 
@@ -243,76 +227,61 @@
             if (lrcPoints[0].begin > lowerEnd || lrcPoints[lrcPoints.length - 1].end < upperEnd) {
 
                 setTimeout(recalculate, 2000);
-
-                //console.log("File missing while calculating lrcPoints, scheduling a recalculation in 2 seconds.");
-
+                
             }
         }
 
-        //console.log("Olivia > recalculateUsingDailyFiles > total lrcPoints generated : " + lrcPoints.length);
+    }
+
+    function addLRCPointToPlotter(pLRCPoint, leftDate, rightDate ) {
+        let lrcPoint = {
+            begin: pLRCPoint[0],
+            end: pLRCPoint[1],
+            min: pLRCPoint[2],
+            mid: pLRCPoint[3],
+            max: pLRCPoint[4]
+        }
+
+        if (lrcPoint.begin >= leftDate.valueOf() && lrcPoint.end <= rightDate.valueOf()) {
+
+            lrcPoints.push(lrcPoint);
+
+            if (datetime.valueOf() >= lrcPoint.begin && datetime.valueOf() <= lrcPoint.end) {
+
+                thisObject.currentLRC = lrcPoint;
+                thisObject.container.eventHandler.raiseEvent("Current LRC Changed", thisObject.currentLRC);
+
+            }
+        }
+    }
+
+    function recalculateUsingMarketFiles() {
+
+        if (marketFile === undefined) { return; } // Initialization not complete yet.
+
+        let daysOnSides = getSideDays(timePeriod);
+
+        let leftDate = getDateFromPoint(viewPort.visibleArea.topLeft, thisObject.container, timeLineCoordinateSystem);
+        let rightDate = getDateFromPoint(viewPort.visibleArea.topRight, thisObject.container, timeLineCoordinateSystem);
+
+        let dateDiff = rightDate.valueOf() - leftDate.valueOf();
+
+        leftDate = new Date(leftDate.valueOf() - dateDiff * 1.5);
+        rightDate = new Date(rightDate.valueOf() + dateDiff * 1.5);
+
+        lrcPoints = [];
+
+        for (let i = 0; i < marketFile.length; i++) {
+
+            addLRCPointToPlotter(marketFile[i], leftDate, rightDate);
+ 
+        }
 
     }
 
-    //function recalculateUsingMarketFiles() {
-
-    //    if (marketFile === undefined) { return; } // Initialization not complete yet.
-
-    //    let daysOnSides = getSideDays(timePeriod);
-
-    //    let leftDate = getDateFromPoint(viewPort.visibleArea.topLeft, thisObject.container, timeLineCoordinateSystem);
-    //    let rightDate = getDateFromPoint(viewPort.visibleArea.topRight, thisObject.container, timeLineCoordinateSystem);
-
-    //    let dateDiff = rightDate.valueOf() - leftDate.valueOf();
-
-    //    leftDate = new Date(leftDate.valueOf() - dateDiff * 1.5);
-    //    rightDate = new Date(rightDate.valueOf() + dateDiff * 1.5);
-
-    //    lrcPoints = [];
-
-    //    for (let i = 0; i < marketFile.length; i++) {
-
-    //        let candle = {
-    //            open: undefined,
-    //            close: undefined,
-    //            min: 10000000000000,
-    //            max: 0,
-    //            begin: undefined,
-    //            end: undefined,
-    //            direction: undefined
-    //        };
-
-    //        candle.min = marketFile[i][0];
-    //        candle.max = marketFile[i][1];
-
-    //        candle.open = marketFile[i][2];
-    //        candle.close = marketFile[i][3];
-
-    //        candle.begin = marketFile[i][4];
-    //        candle.end = marketFile[i][5];
-
-    //        if (candle.open > candle.close) { candle.direction = 'down'; }
-    //        if (candle.open < candle.close) { candle.direction = 'up'; }
-    //        if (candle.open === candle.close) { candle.direction = 'side'; }
-
-    //        if (candle.begin >= leftDate.valueOf() && candle.end <= rightDate.valueOf()) {
-
-    //            lrcPoints.push(candle);
-
-    //            if (datetime.valueOf() >= candle.begin && datetime.valueOf() <= candle.end) {
-
-    //                thisObject.currentLRC = candle;
-    //                thisObject.container.eventHandler.raiseEvent("Current LRC Changed", thisObject.currentLRC);
-
-    //            }
-    //        } 
-    //    }
-
-    //    //console.log("Olivia > recalculateUsingMarketFiles > total lrcPoints generated : " + lrcPoints.length);
-    //}
-
     function recalculateScale() {
 
-        //if (marketFile === undefined) { return; } // We need the market file to be loaded to make the calculation.
+        if (marketFile === undefined) { return; } // We need the market file to be loaded to make the calculation.
 
         if (timeLineCoordinateSystem.maxValue > 0) { return; } // Already calculated.
 
