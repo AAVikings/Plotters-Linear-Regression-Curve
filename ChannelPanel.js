@@ -77,14 +77,14 @@
         
         let y;
 
-        printLabel('15 Candle History:', X_AXIS, frameTitleHeight + frameBodyHeight * 0.15, '1');
-        printLabel(currentLRCPoint.min, X_AXIS, frameTitleHeight + frameBodyHeight * 0.25, '0.50');
+        printLabel('60 Candle History:', X_AXIS, frameTitleHeight + frameBodyHeight * 0.15, '1');
+        printLabel(currentLRCPoint.max, X_AXIS, frameTitleHeight + frameBodyHeight * 0.25, '0.50');
 
         printLabel('30 Candle History:', X_AXIS, frameTitleHeight + frameBodyHeight * 0.45, '1');
         printLabel(currentLRCPoint.mid, X_AXIS, frameTitleHeight + frameBodyHeight * 0.55, '0.50');
 
-        printLabel('60 Candle History:', X_AXIS, frameTitleHeight + frameBodyHeight * 0.75, '1');
-        printLabel(currentLRCPoint.max, X_AXIS, frameTitleHeight + frameBodyHeight * 0.85, '0.50');
+        printLabel('15 Candle History:', X_AXIS, frameTitleHeight + frameBodyHeight * 0.75, '1');
+        printLabel(currentLRCPoint.min, X_AXIS, frameTitleHeight + frameBodyHeight * 0.85, '0.50');
         
         function printLabel(labelToPrint, x, y, opacity) {
 
@@ -93,8 +93,11 @@
 
             browserCanvasContext.font = fontSize + 'px Courier New';
 
-            let label = '' + labelToPrint;
-
+			let label = '' + labelToPrint;
+            if (isNaN(label) === false) {
+                label = Number(label).toLocaleString();
+            }
+			
             let xOffset = label.length / 2 * fontSize * FONT_ASPECT_RATIO;
 
             labelPoint = {

@@ -176,7 +176,7 @@
 
         }
 
-        thisObject.container.eventHandler.raiseEvent("lrcPoints Changed", lrcPoints);
+        thisObject.container.eventHandler.raiseEvent("Channel Changed", lrcPoints);
     }
 
     function recalculateUsingDailyFiles() {
