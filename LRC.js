@@ -1,19 +1,21 @@
 ﻿function newAAVikingsPlotterLinearRegressionCurveLRC() {
-     
+
     let thisObject = {
 
         // Main functions and properties.
 
         initialize: initialize,
+        finalize: finalize,
         container: undefined,
         getContainer: getContainer,
         setTimePeriod: setTimePeriod,
         setDatetime: setDatetime,
+		recalculateScale: recalculateScale,
         draw: draw,
 
         /* Events declared outside the plotter. */
 
-        onDailyFileLoaded: onDailyFileLoaded, 
+        onDailyFileLoaded: onDailyFileLoaded,
 
         // Secondary functions and properties.
 
@@ -41,6 +43,12 @@
 
     let lrcPoints = [];                   // Here we keep the LRCPoints to be ploted every time the Draw() function is called by the AAWebPlatform.
 
+    let zoomChangedEventSubscriptionId
+    let offsetChangedEventSubscriptionId
+    let filesUpdatedEventSubscriptionId
+    let dragFinishedEventSubscriptionId
+    let dimmensionsChangedEventSubscriptionId
+
     return thisObject;
 
     function initialize(pStorage, pExchange, pMarket, pDatetime, pTimePeriod, callBackFunction) {
@@ -55,7 +63,7 @@
 
         /* We need a Market File in order to calculate the Y scale, since this scale depends on actual data. */
 
-        marketFile = marketFiles.getFile(ONE_DAY_IN_MILISECONDS);  // This file is the one processed faster. 
+        marketFile = marketFiles.getFile(ONE_DAY_IN_MILISECONDS);  // This file is the one processed faster.
 
         recalculateScale();
 
@@ -66,13 +74,19 @@
 
         /* Listen to the necesary events. */
 
-        viewPort.eventHandler.listenToEvent("Zoom Changed", onZoomChanged);
-        canvas.eventHandler.listenToEvent("Drag Finished", onDragFinished);
-        marketFiles.eventHandler.listenToEvent("Files Updated", onFilesUpdated);
+        zoomChangedEventSubscriptionId = viewPort.eventHandler.listenToEvent("Zoom Changed", onZoomChanged);
+        offsetChangedEventSubscriptionId = viewPort.eventHandler.listenToEvent("Offset Changed", onOffsetChanged);
+        filesUpdatedEventSubscriptionId = marketFiles.eventHandler.listenToEvent("Files Updated", onFilesUpdated);
+        dragFinishedEventSubscriptionId = canvas.eventHandler.listenToEvent("Drag Finished", onDragFinished);
 
         /* Get ready for plotting. */
 
         recalculate();
+
+        dimmensionsChangedEventSubscriptionId = thisObject.container.eventHandler.listenToEvent('Dimmensions Changed', function () {
+            recalculateScale();
+            recalculate();
+        })
 
         callBackFunction();
 
@@ -143,8 +157,8 @@
         datetime = pDatetime;
 
     }
-    
-    
+
+
     function onDailyFileLoaded(event) {
 
         if (event.currentValue === event.totalValue) {
@@ -210,9 +224,9 @@
                 for (let i = 0; i < dailyFile.length; i++) {
 
                     addLRCPointToPlotter(dailyFile[i], farLeftDate, farRightDate);
-                    
+
                 }
-            } 
+            }
 
             currentDate = new Date(currentDate.valueOf() + ONE_DAY_IN_MILISECONDS);
         }
@@ -227,7 +241,7 @@
             if (lrcPoints[0].begin > lowerEnd || lrcPoints[lrcPoints.length - 1].end < upperEnd) {
 
                 setTimeout(recalculate, 2000);
-                
+
             }
         }
 
@@ -274,7 +288,7 @@
         for (let i = 0; i < marketFile.length; i++) {
 
             addLRCPointToPlotter(marketFile[i], leftDate, rightDate);
- 
+
         }
 
     }
@@ -286,7 +300,7 @@
         if (timeLineCoordinateSystem.maxValue > 0) { return; } // Already calculated.
 
         let minValue = {
-            x: EARLIEST_DATE.valueOf(),
+            x: MIN_PLOTABLE_DATE.valueOf(),
             y: 0
         };
 
@@ -294,7 +308,6 @@
             x: MAX_PLOTABLE_DATE.valueOf(),
             y: 25000 //nextPorwerOf10(getMaxRate()) / 4 // TODO: This 4 is temporary
         };
-
 
         timeLineCoordinateSystem.initialize(
             minValue,
@@ -309,7 +322,7 @@
 
             for (let i = 0; i < marketFile.length; i++) {
 
-                let currentMax = marketFile[i][1];   // 1 = rates.
+                let currentMax = marketFile[i][1];   // 6 = max lrc.
 
                 if (maxValue < currentMax) {
                     maxValue = currentMax;
@@ -322,10 +335,10 @@
     }
 
     function plotChart() {
-        
+
         if (lrcPoints.length > 0) {
             for (var i = 0; i < lrcPoints.length - 1; i++) {
-                                
+
                 let currentTime = (lrcPoints[i].begin + lrcPoints[i].end) / 2;
                 let nextTime = (lrcPoints[i + 1].begin + lrcPoints[i + 1].end) / 2;
 
@@ -352,7 +365,7 @@
 
                 if (!currentLRCPoint) color = 'rgba(182, 190, 255, 0.95)';
                 currentPoint.y = lrcPoints[i].min;
-                nextPoint.y = lrcPoints[i+1].min; 
+                nextPoint.y = lrcPoints[i+1].min;
                 plotLRC(currentPoint, nextPoint, color);
 
                 if (!currentLRCPoint) color = 'rgba(109, 125, 255, 0.95)';
@@ -364,7 +377,7 @@
                 currentPoint.y = lrcPoints[i].max;
                 nextPoint.y = lrcPoints[i + 1].max;
                 plotLRC(currentPoint, nextPoint, color);
-                
+
             }
         }
     }
@@ -388,7 +401,7 @@
         browserCanvasContext.moveTo(currentLRCPoint.x, currentLRCPoint.y);
         browserCanvasContext.lineTo(nextLRCPoint.x, nextLRCPoint.y);
         browserCanvasContext.closePath();
-        
+
         browserCanvasContext.strokeStyle = color;
         browserCanvasContext.fill();
         browserCanvasContext.lineWidth = 1;
@@ -401,10 +414,44 @@
 
     }
 
+    function onOffsetChanged() {
+        if (Math.random() * 100 > 95) {
+            recalculate()
+        };
+    }
+
     function onDragFinished() {
 
         recalculate();
 
+    }
+
+    function finalize() {
+        try {
+
+            /* Stop listening to the necesary events. */
+
+            viewPort.eventHandler.stopListening(zoomChangedEventSubscriptionId);
+            viewPort.eventHandler.stopListening(offsetChangedEventSubscriptionId);
+            marketFiles.eventHandler.stopListening(filesUpdatedEventSubscriptionId);
+            canvas.eventHandler.stopListening(dragFinishedEventSubscriptionId);
+            thisObject.container.eventHandler.stopListening(dimmensionsChangedEventSubscriptionId)
+
+            /* Destroyd References */
+
+            marketFiles = undefined;
+            dailyFiles = undefined;
+
+            datetime = undefined;
+            timePeriod = undefined;
+
+            marketFile = undefined;
+            fileCursor = undefined;
+
+        } catch (err) {
+            console.log(err)
+            // if (ERROR_LOG === true) { logger.write("[ERROR] finalize -> err = " + err.stack); }
+        }
     }
 }
 
